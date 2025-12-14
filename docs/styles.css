@@ -123,6 +123,12 @@ footer {
     font-size: 0.9rem;
 }
 
+/* Status badges */
+.status-badge {
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
 /* Typography */
 h1 {
     color: #2c3e50;
