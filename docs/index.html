@@ -31,6 +31,15 @@
   <li><strong>Toolchain:</strong> GCC 13.3.0 ARM cross-compiler</li>
 </ul>
 
+<h3>Emulation</h3>
+<p>The <a href="https://github.com/ecilasun/qemu">Sandpiper QEMU repository</a> includes all necessary utilities to run the sandpiper system emulator.</p>
+<ul>
+  <li><strong>Location:</strong> The <code>qemu/bin/</code> directory contains the required executables.</li>
+  <li><strong>Platform:</strong> Prebuilt binaries are provided for <strong>Windows</strong>.</li>
+  <li><strong>Disk Image:</strong> The emulator uses the same disk image as the physical Sandpiper device, which is distributed separately (download path will be announced when available). The file name is <code>extracted_sdcard.img</code> and should be copied to the <code>bin/</code> directory for the emulator to run.</li>
+  <li><strong>Usage:</strong> To start the emulator (after you have the OS image), simply go to the root directory of qemu repo and type <code>boot_emulator.bat</code></li>
+</ul>
+
 <h3>Development Toolchain</h3>
 <p>The Sandpiper disk image comes prebuilt with GCC 13.3.0. To develop on your host machine:</p>
 <ul>
