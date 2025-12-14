@@ -11,6 +11,42 @@
   <h1>Welcome to project sandpiper!</h1>
 </header>
 <main class="content">
+
+<h2>About Sandpiper</h2>
+<p>Sandpiper is a custom SoC system built around the <strong>Zynq 7020 FPGA</strong>. It is a Linux-based small computer with custom video and audio circuitry programmed into the FPGA fabric.</p>
+
+<h3>Hardware Features</h3>
+<ul>
+  <li><strong>Processor:</strong> Dual 32-bit ARMv7 Cortex-A9 cores running at 667MHz with hardware floating point / NEON</li>
+  <li><strong>Memory:</strong> 512MB DDR3 RAM (MT41K256M16) with 32 Mbytes shared between devices</li>
+  <li><strong>Video:</strong> HDMI output supporting multiple resolutions (320x240, 320x480, 640x480, 640x240) with 8-bit indexed or 16-bit RGB color modes</li>
+  <li><strong>Audio:</strong> 16-bit stereo PCM audio at 44.1 KHz, 22.05 KHz, or 11.025 KHz via HDMI</li>
+  <li><strong>Connectivity:</strong> Gigabit Ethernet (RTL8211E PHY), SD card slot, UART and power via USB</li>
+</ul>
+
+<h3>Software</h3>
+<ul>
+  <li><strong>Operating System:</strong> Petalinux (Xilinx) with custom device driver (<code>/dev/sandpiper</code>)</li>
+  <li><strong>SDK:</strong> C/C++ SDK with samples for video, audio, and VCP (Video Coprocessor) programming</li>
+  <li><strong>Toolchain:</strong> GCC 13.3.0 ARM cross-compiler</li>
+</ul>
+
+<h3>Development Toolchain</h3>
+<p>The Sandpiper disk image comes prebuilt with GCC 13.3.0. To develop on your host machine:</p>
+<ul>
+  <li><strong>Linux (Ubuntu 24.04):</strong><br>
+    <code>sudo apt-get install gcc-arm-linux-gnueabihf</code><br>
+    <code>sudo apt-get install g++-arm-linux-gnueabihf</code></li>
+  <li><strong>Windows:</strong> Download "13.3.Rel1 AArch32 GNU/Linux target with hard float" from<br>
+    <a href="https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads">ARM GNU Toolchain Downloads</a><br>
+    Also install <a href="https://gnuwin32.sourceforge.net/packages/make.htm">Make for Windows</a></li>
+  <li><strong>MacOS:</strong><br>
+    <code>brew install arm-linux-gnueabihf-binutils</code><br>
+    <code>brew link arm-linux-gnueabihf-binutils</code></li>
+</ul>
+
+<p>The hardware can be updated simply by changing the bitstream file on the SD card—no complicated flashing procedures or hardware programmers required.</p>
+
 <h2>Documentation</h2>
 <p>Explore the SDK documentation to learn how to develop for the Sandpiper platform:</p>
 <ul class="doc-links">
