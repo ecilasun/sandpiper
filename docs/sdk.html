@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDK Documentation - Sandpiper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+  <h1>Sandpiper SDK Documentation</h1>
+</header>
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &gt; SDK Documentation
+</nav>
+<main class="content">
+  <h2>Platform Overview</h2>
+  <p>Sandpiper is a custom SoC system based around the Zynq7020 FPGA.</p>
+  <p>Video, audio and other devices and interconnect fabric has been implemented using the programmable logic fabric. On the physical layer (non-programmable) side of the chip, there are two 32bit ARMv7 cores with hard floating point and AXI bus controllers.</p>
+  <p>The two ARM cores each run at 667MHz and boot up to a command line environment. The current operating system is Petalinux (from Xilinx). Ubuntu 20.04 also runs on the device but was dropped due to complications with future versions not supporting 32 bit processors out of the box.</p>
+  <p>Sandpiper's hardware can be updated by simply changing the bitstream file on the SD card and does not require complicated flashing procedures or hardware programmers.</p>
+  <p>There is a special device driver (<code>/dev/sandpiper</code>) which exposes the video and audio hardware via several command FIFOs. The driver will take care of relinquishing control back to the console once the application terminates (either via SIGKILL or other means). It is possible to SSH to the device to stop any process that might not want to terminate gracefully due to any reason.</p>
+  <p>This SDK contains several samples and the files required to build binaries to take advantage of the custom hardware.</p>
+
+  <h2>Documentation Sections</h2>
+  <ul class="doc-links">
+    <li><a href="platform.html">Platform Utilities</a> - Platform initialization and memory allocation</li>
+    <li><a href="video.html">Video Processing Unit (VPU)</a> - Video output and display control</li>
+    <li><a href="audio.html">Audio Processing Unit (APU)</a> - Audio playback and control</li>
+  </ul>
+</main>
+<footer>
+  <span>&copy; 2025 Engin Cilasun</span>
+  <span>Page 2</span>
+</footer>
+</body>
+</html>

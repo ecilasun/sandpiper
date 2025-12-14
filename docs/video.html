@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Output - Sandpiper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+  <h1>Video Processing Unit (VPU)</h1>
+</header>
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &gt; <a href="sdk.html">SDK</a> &gt; Video
+</nav>
+<main class="content">
+  <h2>VPU Overview</h2>
+  <p>The Video Processing Unit (VPU) handles all video output on the Sandpiper platform. It supports multiple video modes (320x240, 640x480, 320x480, 640x240) with both 8-bit indexed color and 16-bit RGB color modes. The VPU uses DMA to stream video data from shared memory to the display hardware.</p>
+  <p>The VPU supports double buffering for smooth animation, hardware palette manipulation, and includes a built-in text console system for displaying text with customizable colors.</p>
+
+  <h2>Data Structures</h2>
+
+  <h3>EVideoMode</h3>
+  <pre><code>enum EVideoMode
+{
+    EVM_320_240,    // 320x240 pixels
+    EVM_640_480,    // 640x480 pixels
+    EVM_320_480,    // 320x480 pixels
+    EVM_640_240,    // 640x240 pixels
+    EVM_Count
+};</code></pre>
+  <p>Defines the supported video resolutions.</p>
+
+  <h3>EColorMode</h3>
+  <pre><code>enum EColorMode
+{
+    ECM_8bit_Indexed,   // 8-bit indexed color (256 colors from palette)
+    ECM_16bit_RGB,      // 16-bit direct RGB (R5G6B5)
+    ECM_Count
+};</code></pre>
+  <p>Defines the supported color modes.</p>
+
+  <h2>Color Macros</h2>
+  
+  <div class="api-function">
+    <code class="function-signature">MAKECOLORRGB24(_r, _g, _b)</code>
+    <p>Creates a 24-bit RGB color value for setting palette entries. Parameters are 8-bit values (0-255).</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">MAKECOLORRGB16(_r, _g, _b)</code>
+    <p>Creates a 16-bit RGB color value (R5G6B5) for direct color mode. Red and blue are 5-bit (0-31), green is 6-bit (0-63).</p>
+  </div>
+
+  <h2>API Documentation</h2>
+
+  <h3>Initialization / Shutdown</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUInitVideo(struct EVideoContext* _context, struct SPPlatform* _platform);</code>
+    <p>Initializes the video context. Allocates memory for the character and color buffers used by the text console, and sets the default VGA color palette. This must be called before using any other VPU functions.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUShutdownVideo(struct EVideoContext* _context);</code>
+    <p>Shuts down the video context by freeing allocated resources (character and color buffers).</p>
+  </div>
+
+  <h3>Video Mode Configuration</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSetVideoMode(struct EVideoContext *_context, const enum EVideoMode _mode, const enum EColorMode _cmode, const enum EVideoScanoutEnable _scanEnable);</code>
+    <p>Configures the video mode, color mode, and scanout enable settings. Updates the context's state with the new settings including stride, dimensions, and console size.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUGetDimensions(const enum EVideoMode _mode, uint32_t *_width, uint32_t *_height);</code>
+    <p>Retrieves the width and height dimensions in pixels for a given video mode.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">uint32_t VPUGetStride(const enum EVideoMode _mode, const enum EColorMode _cmode);</code>
+    <p>Calculates the stride (number of bytes per row) for a given video mode and color mode.</p>
+  </div>
+
+  <h3>Framebuffer Control</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSetScanoutAddress(struct EVideoContext *_context, const uint32_t _scanOutAddress64ByteAligned);</code>
+    <p>Sets the primary scanout address for the VPU. The address must be 64-byte aligned and should be a physical address obtained from <code>SPAllocateBuffer()</code>.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUClear(struct EVideoContext *_context, const uint32_t _colorWord);</code>
+    <p>Clears the current CPU write page with the specified color. The <code>_colorWord</code> is a 32-bit value containing a 4-pixel wide color pattern.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSwapPages(struct EVideoContext* _context, struct EVideoSwapContext *_sc);</code>
+    <p>Swaps the read and write pages for double buffering on the CPU side. Updates the swap context with new read/write pointers and increments the cycle counter.</p>
+  </div>
+
+  <h3>Synchronization</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSyncSwap(struct EVideoContext *_context, uint8_t _donotwaitforvsync);</code>
+    <p>Initiates a swap between the two video pages. If <code>_donotwaitforvsync</code> is non-zero, the swap will not wait for vertical sync.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUWaitVSync(struct EVideoContext *_context);</code>
+    <p>Blocks until the VPU's VBlank counter flips, indicating a new frame has started.</p>
+  </div>
+
+  <h3>Palette Control</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSetDefaultPalette(struct EVideoContext *_context);</code>
+    <p>Sets the default VGA color palette by writing all 256 color entries to the hardware.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUSetPal(struct EVideoContext *_context, const uint8_t _paletteIndex, const uint32_t _red, const uint32_t _green, const uint32_t _blue);</code>
+    <p>Sets a single palette entry. <code>_paletteIndex</code> specifies the palette slot (0-255). RGB values are 0-255.</p>
+  </div>
+
+  <h3>Console Functions</h3>
+  <p>The VPU includes a built-in text console system with character and color buffers. The console uses an 8x8 pixel built-in font.</p>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUConsoleClear(struct EVideoContext *_context);</code>
+    <p>Clears the console screen by filling it with spaces and the current background color. Resets the cursor position to the top-left corner.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUConsolePrint(struct EVideoContext *_context, const char *_message, int _length);</code>
+    <p>Prints a string of text onto the console at the current cursor position. Respects newline, tab, and carriage return characters. Automatically scrolls when reaching the bottom of the screen.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void VPUConsoleSetColors(struct EVideoContext *_context, const uint8_t _foregroundIndex, const uint8_t _backgroundIndex);</code>
+    <p>Sets both the foreground and background colors for subsequent console text output. Values are palette indices (0-15 for standard console colors).</p>
+  </div>
+
+  <h2>Example Usage</h2>
+  <pre><code>// Initialize platform and video
+struct SPPlatform* platform = SPInitPlatform();
+struct EVideoContext videoCtx;
+VPUInitVideo(&amp;videoCtx, platform);
+
+// Allocate framebuffers (must be 64-byte aligned)
+uint32_t stride = VPUGetStride(EVM_640_480, ECM_8bit_Indexed);
+struct SPSizeAlloc framebufferA, framebufferB;
+framebufferA.size = stride * 480;
+framebufferB.size = stride * 480;
+SPAllocateBuffer(platform, &amp;framebufferA);
+SPAllocateBuffer(platform, &amp;framebufferB);
+
+// Configure video mode
+VPUSetVideoMode(&amp;videoCtx, EVM_640_480, ECM_8bit_Indexed, EVS_Enable);
+
+// Clear screen with black
+VPUClear(&amp;videoCtx, 0x00000000);
+
+// Use the console
+VPUConsoleSetColors(&amp;videoCtx, CONSOLEWHITE, CONSOLEDIMBLUE);
+VPUConsoleClear(&amp;videoCtx);
+VPUConsolePrint(&amp;videoCtx, "Hello, Sandpiper!\n", 18);
+
+// Cleanup
+VPUShutdownVideo(&amp;videoCtx);
+SPShutdownPlatform(platform);</code></pre>
+</main>
+<footer>
+  <span>&copy; 2025 Engin Cilasun</span>
+  <span>Page 4</span>
+</footer>
+</body>
+</html>

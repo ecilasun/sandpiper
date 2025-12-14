@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Platform Utilities - Sandpiper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+  <h1>Platform Utilities</h1>
+</header>
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &gt; <a href="sdk.html">SDK</a> &gt; Platform
+</nav>
+<main class="content">
+  <h2>API Documentation</h2>
+  
+  <h3>Starting / Stopping the Sandpiper Device Support</h3>
+  
+  <div class="api-function">
+    <code class="function-signature">struct SPPlatform* SPInitPlatform();</code>
+    <p>Opens hardware devices and sets up necessary internals so that we can start using the custom video and audio circuitry.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void SPShutdownPlatform(struct SPPlatform* _platform);</code>
+    <p>Relinquishes control back to the caller by releasing memory. However it will not close the device connections, which the platform driver at <code>/dev/sandpiper</code> handles. This is done so that there is always a visible terminal window and silent audio when an application crashes or exits due to unknown reasons.</p>
+  </div>
+
+  <h3>Shared Memory Allocation / Deallocation</h3>
+
+  <div class="api-function">
+    <code class="function-signature">int SPAllocateBuffer(struct SPPlatform* _platform, struct SPSizeAlloc *_sizealloc);</code>
+    <p>Allocates a portion of physical memory with proper DMA alignment, and populates the SPSizeAlloc structure with matching physical / CPU address pairs for use with devices and the ARM cores.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void SPFreeBuffer(struct SPPlatform* _platform, struct SPSizeAlloc *_sizealloc);</code>
+    <p>Hands back the previously allocated buffer.</p>
+  </div>
+</main>
+<footer>
+  <span>&copy; 2025 Engin Cilasun</span>
+  <span>Page 3</span>
+</footer>
+</body>
+</html>

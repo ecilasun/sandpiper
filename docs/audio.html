@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio Output - Sandpiper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+  <h1>Audio Processing Unit (APU)</h1>
+</header>
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &gt; <a href="sdk.html">SDK</a> &gt; Audio
+</nav>
+<main class="content">
+  <h2>APU Overview</h2>
+  <p>The Audio Processing Unit (APU) handles audio playback on the Sandpiper platform. It supports stereo 16-bit PCM audio at various sample rates (44.1 KHz, 22.05 KHz, 11.025 KHz) and uses DMA to stream audio data from shared memory to the audio hardware.</p>
+  <p>The APU works with a double-buffered system where the hardware toggles between two buffer halves. Applications can use <code>APUFrame()</code> to determine which buffer is currently being played and <code>APUWaitSync()</code> to synchronize audio updates with buffer swaps.</p>
+
+  <h2>Data Structures</h2>
+
+  <h3>EAPUSampleRate</h3>
+  <pre><code>enum EAPUSampleRate
+{
+    ASR_44_100_Hz = 0,  // 44.1000 KHz
+    ASR_22_050_Hz = 1,  // 22.0500 KHz
+    ASR_11_025_Hz = 2,  // 11.0250 KHz
+    ASR_Halt = 3,       // Halt audio playback
+};</code></pre>
+  <p>Defines the supported audio sample rates.</p>
+
+  <h3>EAPUBufferSize</h3>
+  <pre><code>enum EAPUBufferSize
+{
+    ABS_128Bytes  = 0,  //   32 16bit stereo samples
+    ABS_256Bytes  = 1,  //   64 16bit stereo samples
+    ABS_512Bytes  = 2,  //  128 16bit stereo samples
+    ABS_1024Bytes = 3,  //  256 16bit stereo samples
+    ABS_2048Bytes = 4,  //  512 16bit stereo samples
+    ABS_4096Bytes = 5,  // 1024 16bit stereo samples
+};</code></pre>
+  <p>Defines the supported audio buffer sizes. Each sample consists of two 16-bit values (left and right channels).</p>
+
+  <h2>API Documentation</h2>
+
+  <h3>Initialization / Shutdown</h3>
+
+  <div class="api-function">
+    <code class="function-signature">int APUInitAudio(struct EAudioContext* _context, struct SPPlatform* _platform);</code>
+    <p>Initializes the audio context. This must be called before using any other APU functions. The sample rate is initially set to <code>ASR_Halt</code> (audio stopped). Returns 0 on success.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void APUShutdownAudio(struct EAudioContext* _context);</code>
+    <p>Shuts down the audio context. If audio is still playing, it will be halted automatically.</p>
+  </div>
+
+  <h3>Configuration</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void APUSetBufferSize(struct EAudioContext* _context, enum EAPUBufferSize _bufferSize);</code>
+    <p>Sets the audio buffer size. The buffer size determines how many samples are played before the APU switches to the next buffer half. Larger buffers provide more time to fill the next buffer but introduce more latency.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void APUSetSampleRate(struct EAudioContext* _context, enum EAPUSampleRate _sampleRate);</code>
+    <p>Sets the audio sample rate. Use <code>ASR_Halt</code> to stop audio playback.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void APUSwapChannels(struct EAudioContext* _context, uint32_t _swap);</code>
+    <p>Swaps the left and right audio channels. Pass a non-zero value to swap channels, or zero to keep the original order.</p>
+  </div>
+
+  <h3>Playback Control</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void APUStartDMA(struct EAudioContext* _context, uint32_t _audioBufferAddress16byteAligned);</code>
+    <p>Queues the next set of audio samples to be transferred to the APU's internal buffer. The buffer address must be 16-byte aligned and should be a physical address obtained from <code>SPAllocateBuffer()</code>.</p>
+  </div>
+
+  <h3>Synchronization</h3>
+
+  <div class="api-function">
+    <code class="function-signature">void APUSync(struct EAudioContext* _context);</code>
+    <p>Sends a no-operation command to the APU. This can be used to ensure previous commands have been processed.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">uint32_t APUFrame(struct EAudioContext* _context);</code>
+    <p>Returns the current frame status (0 or 1). This indicates which half of the double buffer is currently being played. Applications should fill the inactive buffer half while the other is being played.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">uint32_t APUGetWordCount(struct EAudioContext* _context);</code>
+    <p>Returns the number of words currently in the APU buffer. This can be used to monitor buffer fill level.</p>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">void APUWaitSync(struct EAudioContext *_context);</code>
+    <p>Blocks until the APU switches to the next buffer. This is useful for synchronizing audio data updates with buffer swaps.</p>
+  </div>
+
+  <h2>Example Usage</h2>
+  <pre><code>// Initialize platform and audio
+struct SPPlatform* platform = SPInitPlatform();
+struct EAudioContext audioCtx;
+APUInitAudio(&amp;audioCtx, platform);
+
+// Allocate audio buffer (must be 16-byte aligned)
+struct SPSizeAlloc audioBuffer;
+audioBuffer.size = 4096;  // Double buffer: 2x 2048 bytes
+SPAllocateBuffer(platform, &amp;audioBuffer);
+
+// Configure audio
+APUSetBufferSize(&amp;audioCtx, ABS_2048Bytes);
+APUSetSampleRate(&amp;audioCtx, ASR_44_100_Hz);
+
+// Start playback
+APUStartDMA(&amp;audioCtx, (uint32_t)audioBuffer.dmaAddress);
+
+// Audio loop
+while (playing) {
+    uint32_t frame = APUFrame(&amp;audioCtx);
+    // Fill the inactive buffer half
+    int16_t* samples = (int16_t*)(audioBuffer.cpuAddress + (frame ? 0 : 2048));
+    // ... fill samples ...
+    
+    APUWaitSync(&amp;audioCtx);  // Wait for buffer swap
+}
+
+// Cleanup
+APUShutdownAudio(&amp;audioCtx);
+SPFreeBuffer(platform, &amp;audioBuffer);
+SPShutdownPlatform(platform);</code></pre>
+</main>
+<footer>
+  <span>&copy; 2025 Engin Cilasun</span>
+  <span>Page 5</span>
+</footer>
+</body>
+</html>
