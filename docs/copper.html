@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Video Coprocessor - Sandpiper</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+	<h1>Video Coprocessor (VCP)</h1>
+</header>
+<nav class="breadcrumb">
+	<a href="index.html">Home</a> &gt; <a href="sdk.html">SDK</a> &gt; VCP
+</nav>
+<main class="content">
+	<h2>VCP Overview</h2>
+	<p>The Video Coprocessor (VCP) is a small programmable unit intended for scanline/pixel-synchronous control tasks such as palette updates and simple decision-making while video is active.</p>
+	<p>A VCP program is a sequence of 32-bit instructions. Programs are uploaded to the VCP’s internal program memory via DMA and can be started/stopped independently of the CPU.</p>
+
+	<h2>Program Format</h2>
+	<p>VCP programs are arrays of <code>uint32_t</code> where each word is one instruction. The SDK provides macros in <code>vcp.h</code> to build these instruction words.</p>
+
+	<h3>EVCPBufferSize</h3>
+	<pre><code>enum EVCPBufferSize
+{
+		PRG_128Bytes  = 0,  //   32 words
+		PRG_256Bytes  = 1,  //   64 words
+		PRG_512Bytes  = 2,  //  128 words
+		PRG_1024Bytes = 3,  //  256 words
+		PRG_2048Bytes = 4,  //  512 words
+		PRG_4096Bytes = 5,  // 1024 words
+};</code></pre>
+	<p>Programs must be exactly one of the sizes above. Pad with <code>noop()</code> instructions as needed.</p>
+
+	<h2>API Documentation</h2>
+
+	<div class="api-function">
+		<code class="function-signature">void VCPUploadProgram(struct SPPlatform *ctx, const uint32_t* _program, enum EVCPBufferSize size);</code>
+		<p>Uploads a VCP program to the device. The SDK copies the program to shared memory and queues a DMA transfer into the VCP’s internal program memory. Programs must be padded to match the selected <code>EVCPBufferSize</code>.</p>
+	</div>
+
+	<div class="api-function">
+		<code class="function-signature">void VCPExecProgram(struct SPPlatform *ctx, const uint8_t _execFlags);</code>
+		<p>Toggles VCP execution on and off. Currently only the lowest bit is used (one VCP unit). Setting this to zero will stop the VCP after the current instruction fully executes.</p>
+	</div>
+
+	<div class="api-function">
+		<code class="function-signature">uint32_t VCPStatus(struct SPPlatform *ctx);</code>
+		<p>Reads the VCP status register. The returned bit pattern contains execution state, run state, program counter (PC), FIFO/DMA flags, and the opcode at the current program address.</p>
+	</div>
+
+	<h3>Status Register Bitfield</h3>
+	<pre><code>0000 OOOO 0CFP PPPP PPPP PPPP RRRR EEEE
+E = execstate (execution state machine state, 4 bits)
+R = runstate (high for running, low for stopped, 4 bits)
+P = address of current instruction (PC, 13 bits)
+F = high when command FIFO is not empty (1 bit)
+C = program DMA in flight (1 bit)
+O = opcode at program address (4 bits)</code></pre>
+
+	<h2>Instruction Encoding Notes</h2>
+	<p>The instruction macros in <code>vcp.h</code> encode destination/source registers and immediates into fixed bit positions. There are 16 general registers (<code>VREG_ZERO</code>, <code>VREG_1</code> … <code>VREG_F</code>) and a 1-bit special compare register (<code>cmpreg</code>) used by compare/branch.</p>
+	<p>Program memory addresses used by <code>jump</code>/<code>branch</code>/<code>load</code>/<code>store</code> must be 4-byte aligned.</p>
+
+	<h3>Compare Flags</h3>
+	<pre><code>// Base flags (combine with COND_INV to negate)
+#define COND_LE   0x01
+#define COND_LT   0x02
+#define COND_EQ   0x04
+#define COND_INV  0x08
+
+// Derived convenience flags
+#define COND_GT   (COND_LE | COND_INV)
+#define COND_GE   (COND_LT | COND_INV)
+#define COND_NE   (COND_EQ | COND_INV)</code></pre>
+	<p>Only one of <code>COND_LE</code>/<code>COND_LT</code>/<code>COND_EQ</code> is considered (in that order), so prefer using a single base flag and optionally OR with <code>COND_INV</code>.</p>
+
+	<h3>Register Constants</h3>
+	<pre><code>#define VREG_ZERO 0x00
+#define VREG_1    0x01
+...
+#define VREG_E    0x0E
+#define VREG_F    0x0F</code></pre>
+
+	<h2>VCP Instruction Reference</h2>
+
+	<h3>Wait instructions</h3>
+	<div class="api-function">
+		<code class="function-signature">wscn(src)</code>
+		<p>Waits for a scanline that matches the contents of register <code>src</code>. Valid range is 0..524. Out-of-range values cause an infinite wait.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">wpix(src)</code>
+		<p>Waits for a pixel (X coordinate) that matches the contents of register <code>src</code>. Valid range is 0..799. Out-of-range values cause an infinite wait.</p>
+	</div>
+
+	<h3>Color palette access</h3>
+	<div class="api-function">
+		<code class="function-signature">pwrt(addrs, src)</code>
+		<p>Writes the value of register <code>src</code> to palette entry at <code>addrs</code> (0..255, increment by 1).</p>
+	</div>
+
+	<h3>Arithmetic instructions</h3>
+	<div class="api-function">
+		<code class="function-signature">radd(dest, src1, src2)</code>
+		<p>Adds <code>src2</code> to <code>src1</code> and writes the result to <code>dest</code>. Overflow bits are discarded.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rsub(dest, src1, src2)</code>
+		<p>Subtracts <code>src2</code> from <code>src1</code> and writes the result to <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rinc(dest, src1)</code>
+		<p>Increments <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rdec(dest, src1)</code>
+		<p>Decrements <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+	</div>
+
+	<h3>Branch instructions</h3>
+	<div class="api-function">
+		<code class="function-signature">jump(addrs)</code>
+		<p>Unconditional jump to program memory address contained in register <code>addrs</code>. Address must be 4-byte aligned.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">jumpim(offset)</code>
+		<p>Unconditional jump to PC-relative target (current PC plus <code>offset</code>). Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">branch(addrs)</code>
+		<p>Conditional branch to address in <code>addrs</code> if <code>cmpreg</code> is nonzero. Address must be 4-byte aligned.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">branchim(offset)</code>
+		<p>Conditional PC-relative branch if <code>cmpreg</code> is nonzero. Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+	</div>
+
+	<h3>Program memory access</h3>
+	<div class="api-function">
+		<code class="function-signature">store(addrs, src)</code>
+		<p>Stores register <code>src</code> to program memory at the address held in <code>addrs</code>. Address must be 4-byte aligned.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">load(addrs, dest)</code>
+		<p>Loads from program memory at the address held in <code>addrs</code> into <code>dest</code>. Address must be 4-byte aligned.</p>
+	</div>
+
+	<h3>Internal register access</h3>
+	<div class="api-function">
+		<code class="function-signature">scanline_read(dest)</code>
+		<p>Reads the current scanline into <code>dest</code>. Values range from 0 to 524 (can include off-screen).</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">scanpixel_read(dest)</code>
+		<p>Reads the current pixel (X coordinate) into <code>dest</code>. Values range from 0 to 799 (can include off-screen).</p>
+	</div>
+
+	<h3>Logic instructions</h3>
+	<div class="api-function">
+		<code class="function-signature">cmp(cmpflags, src1, src2)</code>
+		<p>Compares <code>src1</code> and <code>src2</code> using <code>cmpflags</code>, ORs compare results, and writes the 1-bit result into <code>cmpreg</code> for use by branch instructions.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rand(dest, src1, src2)</code>
+		<p>Bitwise AND of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">ror(dest, src1, src2)</code>
+		<p>Bitwise OR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rxor(dest, src1, src2)</code>
+		<p>Bitwise XOR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rasr(dest, src1, src2)</code>
+		<p>Arithmetic shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rshr(dest, src1, src2)</code>
+		<p>Logical shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rshl(dest, src1, src2)</code>
+		<p>Shift-left of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rneg(dest, src)</code>
+		<p>Bitwise negation of <code>src</code> into <code>dest</code> (equivalent to <code>src ^ 0xFFFFFF</code>).</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">rcmp(dest)</code>
+		<p>Reads <code>cmpreg</code> into <code>dest</code> (zero-extended).</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">lctl(dest)</code>
+		<p>Loads the VPU control register into the lower 8 bits of <code>dest</code>. This can be used to have CPU-written VPU state influence VCP program flow.</p>
+	</div>
+
+	<h3>Other instructions</h3>
+	<div class="api-function">
+		<code class="function-signature">ldim(dest, immed)</code>
+		<p>Loads a 24-bit immediate value into register <code>dest</code>. (Alias: <code>mvim(dest, imm)</code>.)</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">noop()</code>
+		<p>No operation.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">mv(dest, src)</code>
+		<p>Copies <code>src</code> to <code>dest</code> (implemented as an add with <code>VREG_ZERO</code>).</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">clr(dest)</code>
+		<p>Assigns zero to <code>dest</code>.</p>
+	</div>
+
+	<h2>Example Usage</h2>
+	<pre><code>// Build a program as uint32_t words using vcp_* macros
+// (pad with noop() so the array size matches the chosen EVCPBufferSize)
+
+struct SPPlatform* platform = SPInitPlatform();
+
+uint32_t program[32] = {
+		// Example: wait for scanline, then write a palette entry
+		vcp_ldim(VREG_1, 100),      // r1 = 100
+		vcp_wscn(VREG_1),           // wait for scanline 100
+
+		vcp_ldim(VREG_2, 0),        // r2 = palette index
+		vcp_ldim(VREG_3, 0x00FF00), // r3 = color value
+		vcp_pwrt(VREG_2, VREG_3),   // palette[r2] = r3
+
+		vcp_noop(),
+};
+
+VCPUploadProgram(platform, program, PRG_128Bytes);
+VCPExecProgram(platform, 0x1); // start
+
+// ... later: VCPExecProgram(platform, 0x0); // stop
+
+SPShutdownPlatform(platform);</code></pre>
+
+	<h2>Instruction latencies</h2>
+	<pre><code>
+Instruction latencies:
+0x0 NOP: 4
+0x1 LOAD_IMM: 4
+0x2 PAL_WRITE: 4
+0x3 SCANLINE_WAIT:
+If condition is already true when it reaches EXEC: 4
+If not true: 4 + k, where each additional poll costs 1 core clock (it stays in EXEC and keeps PC the same until the match)
+0x4 SCANPIXEL_WAIT: same as SCANLINE_WAIT (4 if hit immediately, else 4 + k with 1 cycle per poll)
+0x5 MATHOP: 4
+0x6 JMP: 4
+0x7 CMP: 5 (extra FINALIZE_COMPARE state)
+0x8 BRANCH (depends on prior cmpreg): 4
+0x9 MEM_WRITE: 4
+0xA MEM_READ: 6 (WAIT_READ + FINALIZE_READ after EXEC)
+0xB READ_SCANINFO: 4
+0xD LOGICOP: 4
+0xC/0xE/0xF UNUSED*: 4 (they do nothing but still consume the normal FSM path)
+
+</code></pre>
+</main>
+<footer>
+	<span>&copy; 2025 Engin Cilasun</span>
+	<span>Page 6</span>
+</footer>
+</body>
+</html>
