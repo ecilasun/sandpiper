@@ -236,20 +236,9 @@ uint32_t rasterprogram[] = {
             <h3>Performance Considerations</h3>
             <ul>
                 <li>VCP instructions execute in parallel with CPU, minimizing performance impact</li>
-                <li>Palette writes are synchronized with video scanout to prevent tearing</li>
+                <li>Palette writes can be synchronized to end of line to prevent tearing</li>
                 <li>Keep programs as small as possible for optimal performance</li>
                 <li>Use immediate values when possible to reduce memory reads</li>
-            </ul>
-
-  <h2>Error Codes</h2>
-            <p>Status register error codes (bits [3:0]):</p>
-            <ul>
-                <li><code>0x0</code> - No error, running normally</li>
-                <li><code>0x1</code> - Invalid instruction</li>
-                <li><code>0x2</code> - Division by zero</li>
-                <li><code>0x3</code> - Invalid register access</li>
-                <li><code>0x4</code> - Program counter out of bounds</li>
-                <li><code>0xF</code> - General fault</li>
             </ul>
 
   <h2>Related Documentation</h2>
