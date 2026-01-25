@@ -103,84 +103,111 @@ Bits [27:24] - Output code</code></pre>
 
             <h3>Register Definitions</h3>
             <pre><code>#define VREG_ZERO   0x0   // Constant zero
-#define VREG_ONE    0x1   // Constant one
-#define VREG_S0     0x2   // Saved register 0
-#define VREG_S1     0x3   // Saved register 1
-#define VREG_S2     0x4   // Saved register 2
-#define VREG_S3     0x5   // Saved register 3
-#define VREG_S4     0x6   // Saved register 4
-#define VREG_S5     0x7   // Saved register 5
-#define VREG_T0     0x8   // Temporary register 0
-#define VREG_T1     0x9   // Temporary register 1
-#define VREG_T2     0xA   // Temporary register 2
-#define VREG_T3     0xB   // Temporary register 3
-#define VREG_T4     0xC   // Temporary register 4
-#define VREG_T5     0xD   // Temporary register 5
-#define VREG_T6     0xE   // Temporary register 6
-#define VREG_STATUS 0xF   // Status register</code></pre>
+#define VREG_1      0x1   // General purpose register 1
+#define VREG_2      0x2   // General purpose register 2
+#define VREG_3      0x3   // General purpose register 3
+#define VREG_4      0x4   // General purpose register 4
+#define VREG_5      0x5   // General purpose register 5
+#define VREG_6      0x6   // General purpose register 6
+#define VREG_7      0x7   // General purpose register 7
+#define VREG_8      0x8   // General purpose register 8
+#define VREG_9      0x9   // General purpose register 9
+#define VREG_A      0xA   // General purpose register A
+#define VREG_B      0xB   // General purpose register B
+#define VREG_C      0xC   // General purpose register C
+#define VREG_D      0xD   // General purpose register D
+#define VREG_E      0xE   // General purpose register E
+#define VREG_F      0xF   // General purpose register F</code></pre>
 
             <h3>Condition Codes</h3>
-            <pre><code>#define COND_ALWAYS  0x0  // Always branch
-#define COND_EQ      0x1  // Equal
-#define COND_NE      0x2  // Not equal
-#define COND_LT      0x3  // Less than
-#define COND_LE      0x4  // Less than or equal
-#define COND_GT      0x5  // Greater than
-#define COND_GE      0x6  // Greater than or equal</code></pre>
+            <pre><code>#define COND_INV   0x08  // Invert condition (OR with values below)
+#define COND_LE    0x01  // Less than or equal (or GT if inverted)
+#define COND_LT    0x02  // Less than (or GE if inverted)
+#define COND_EQ    0x04  // Equal (or NE if inverted)
+#define COND_GT    (COND_LE | COND_INV)
+#define COND_GE    (COND_LT | COND_INV)
+#define COND_NE    (COND_EQ | COND_INV)</code></pre>
 
   <h2>Instruction Macros</h2>
   
-  <h3>Arithmetic Operations</h3>
-            <pre><code>vcp_add(dest, src1, src2)    // dest = src1 + src2
-vcp_sub(dest, src1, src2)    // dest = src1 - src2
-vcp_mul(dest, src1, src2)    // dest = src1 * src2
-vcp_div(dest, src1, src2)    // dest = src1 / src2</code></pre>
+            <h3>Instruction Macros</h3>
+            <pre><code>// Data Movement
+vcp_noop()                         // No operation
+vcp_ldim(dest, immed)              // Load 24-bit immediate
+vcp_mv(dest, src)                  // Move register
+vcp_clr(dest)                      // Clear register (set to zero)
 
-            <h3>Logic Operations</h3>
-            <pre><code>vcp_and(dest, src1, src2)    // dest = src1 & src2
-vcp_or(dest, src1, src2)     // dest = src1 | src2
-vcp_xor(dest, src1, src2)    // dest = src1 ^ src2
-vcp_not(dest, src)           // dest = ~src</code></pre>
+// Arithmetic
+vcp_radd(dest, src1, src2)         // dest = src1 + src2
+vcp_rsub(dest, src1, src2)         // dest = src1 - src2
+vcp_rinc(dest, src1)               // dest = src1 + 1
+vcp_rdec(dest, src1)               // dest = src1 - 1
 
-            <h3>Data Movement</h3>
-            <pre><code>vcp_mv(dest, src)            // dest = src
-vcp_clr(dest)                // dest = 0</code></pre>
+// Logical
+vcp_rand(dest, src1, src2)         // dest = src1 & src2
+vcp_ror(dest, src1, src2)          // dest = src1 | src2
+vcp_rxor(dest, src1, src2)         // dest = src1 ^ src2
+vcp_rneg(dest, src1)               // dest = ~src1
+vcp_rshl(dest, src1, src2)         // dest = src1 << src2
+vcp_rshr(dest, src1, src2)         // dest = src1 >> src2
+vcp_rasr(dest, src1, src2)         // dest = src1 >>> src2 (arithmetic)
 
-            <h3>Control Flow</h3>
-            <pre><code>vcp_noop()                              // No operation
-vcp_jumpim(offset)                      // Jump to PC + offset
-vcp_cmp(condition, reg1, reg2)          // Compare registers
-vcp_branchim(offset)                    // Branch if condition true</code></pre>
+// Control Flow
+vcp_cmp(cond, src1, src2)          // Compare and set condition flag
+vcp_jump(addrs)                    // Jump to address in register
+vcp_jumpim(offset)                 // Jump PC-relative (signed 16-bit)
+vcp_branch(addrs)                  // Branch to address if condition true
+vcp_branchim(offset)               // Branch PC-relative if condition true
 
-            <h3>Palette Operations</h3>
-            <pre><code>vcp_palette_write(index_reg, color_reg) // Write color to palette[index]</code></pre>
+// Memory Operations
+vcp_store(addrs, src)              // Store register to memory
+vcp_load(addrs, dest)              // Load from memory to register
 
-            <h3>Synchronization</h3>
-            <pre><code>vcp_scanline_wait(line_reg)             // Wait until scanline == line_reg
-vcp_scanline_read(dest_reg)             // Read current scanline to dest_reg</code></pre>
+// VPU Interaction
+vcp_pwrt(addrs, src)               // Write to palette[addrs] = src
+vcp_wscn(line)                     // Wait for scanline
+vcp_wpix(pixel)                    // Wait for pixel position
+vcp_scanline_read(dest)            // Read current scanline to register
+vcp_scanpixel_read(dest)           // Read current pixel position
+vcp_rcmp(dest)                     // Read compare flag
+vcp_rctl(dest)                     // Read VPU control register</code></pre>
 
   <h2>Example Usage</h2>
   
   <h3>Simple Palette Cycling Program</h3>
             <pre><code>#include "vcp.h"
 
-// Program that cycles palette colors during scanout
-uint32_t vcpprogram[] = {
-    // Reset palette cycling
-    vcp_clr(VREG_T0),                           // color = 0
+// Palette cycling program (from vcpdemo sample)
+uint32_t vcpprogram[32] = {
+  vcp_ldim(VREG_1, 0x000000),              // scrolloffset = 0
+  vcp_ldim(VREG_2, 0x0000FF),              // mask = 0xFF
+  vcp_ldim(VREG_3, 640),                   // endofline = 640
+  vcp_ldim(VREG_8, 0x000002),              // scrollspeed = 2
+  vcp_ldim(VREG_9, 0x000003),              // shift3 = 3
+  vcp_ldim(VREG_4, 0x000006),              // shift6 = 6
+  vcp_ldim(VREG_5, 0x000008),              // shift8 = 8
+  vcp_ldim(VREG_C, 0x000010),              // shift16 = 16
+  vcp_ldim(VREG_B, 0x000080),              // stopline = 128
+  vcp_radd(VREG_1, VREG_1, VREG_8),        // scrolloffset += scrollspeed
     
-    // Idle loop - wait for scanline 0
-    vcp_scanline_read(VREG_6),                  // scanline = current
-    vcp_cmp(COND_NE, VREG_6, VREG_ZERO),        // if scanline != 0
-    vcp_branchim(-0x08),                        // branch to idle loop
+  // Loop: wait for pixel, update palette
+  vcp_wpix(VREG_3),                        // wait for endofline
+  vcp_scanline_read(VREG_6),               // scanline = $videoscanline
+  vcp_cmp(COND_EQ, VREG_6, VREG_B),        // scanline == 128?
+  vcp_branchim(0x34),                      // branch.eq idle
     
-    // Write palette entry
-    vcp_loadimm(VREG_T1, 0xFF0000),             // color = red
-    vcp_palette_write(VREG_T0, VREG_T1),        // palette[0] = red
-    
-    // Increment and loop
-    vcp_add(VREG_T0, VREG_T0, VREG_ONE),        // color++
-    vcp_jumpim(-0x20),                          // jump back
+  vcp_radd(VREG_7, VREG_6, VREG_1),        // t = scanline + scrolloffset
+  vcp_rand(VREG_A, VREG_7, VREG_2),        // b = (t >> 0) & 0xFF
+  vcp_rshl(VREG_D, VREG_7, VREG_9),        // g = (t << 3) & 0xFF
+  vcp_rand(VREG_D, VREG_D, VREG_2),
+  vcp_rshl(VREG_D, VREG_D, VREG_5),        // g <<= 8
+  vcp_ror(VREG_A, VREG_A, VREG_D),         // color |= g
+  vcp_rshl(VREG_D, VREG_7, VREG_4),        // r = (t << 6) & 0xFF
+  vcp_rand(VREG_D, VREG_D, VREG_2),
+  vcp_rshl(VREG_D, VREG_D, VREG_C),        // r <<= 16
+  vcp_ror(VREG_A, VREG_A, VREG_D),         // color |= r
+  vcp_pwrt(VREG_ZERO, VREG_A),             // PAL[0] = color
+  vcp_jumpim(-0x3C),                       // jmp loop
 };
 
 // Upload and execute
@@ -191,60 +218,39 @@ VCPExecProgram(platform, 0x1);
 uint32_t status = VCPStatus(platform);
 printf("VCP Status: 0x%08X\n", status);</code></pre>
 
-            <h3>Raster Bar Effect</h3>
-            <pre><code>// Program that changes palette during specific scanlines
-uint32_t rasterprogram[] = {
-    vcp_clr(VREG_S0),                           // color_index = 0
-    vcp_loadimm(VREG_S1, 100),                  // target_line = 100
-    
-    // Wait for target scanline
-    vcp_scanline_read(VREG_T0),
-    vcp_cmp(COND_LT, VREG_T0, VREG_S1),
-    vcp_branchim(-0x08),
-    
-    // Change palette at scanline
-    vcp_loadimm(VREG_T1, 0x00FF00),             // green
-    vcp_palette_write(VREG_S0, VREG_T1),
-    
-    // Continue to next frame
-    vcp_scanline_read(VREG_T0),
-    vcp_cmp(COND_EQ, VREG_T0, VREG_ZERO),
-    vcp_branchim(-0x08),
-    
-    vcp_jumpim(-0x28),                          // loop
-};</code></pre>
-
   <h2>Programming Guidelines</h2>
   
-  <h3>Best Practices</h3>
-            <ul>
-                <li><strong>Always stop before upload:</strong> Use <code>VPUWriteControlRegister</code> to stop existing programs before uploading</li>
-                <li><strong>Program size:</strong> Choose appropriate buffer size - larger programs allow more complex effects but use more memory</li>
-                <li><strong>Timing coordination:</strong> Use scanline wait instructions to synchronize with video output</li>
-                <li><strong>Register usage:</strong> Use S-registers (S0-S5) for values that persist across frames, T-registers (T0-T6) for temporary values</li>
-                <li><strong>Infinite loops:</strong> Most VCP programs run in infinite loops, synchronized to vsync</li>
-            </ul>
-
-            <h3>Common Patterns</h3>
-            <ul>
-                <li><strong>Frame sync:</strong> Wait for scanline 0 to detect new frame</li>
-                <li><strong>Scanline effects:</strong> Wait for specific scanlines and modify palette or other parameters</li>
-                <li><strong>Conditional execution:</strong> Use compare and branch for state-based effects</li>
-                <li><strong>Incremental changes:</strong> Use add/sub to create smooth transitions or animations</li>
-            </ul>
-
-            <h3>Performance Considerations</h3>
-            <ul>
-                <li>VCP instructions execute in parallel with CPU, minimizing performance impact</li>
-                <li>Palette writes can be synchronized to end of line to prevent tearing</li>
-                <li>Keep programs as small as possible for optimal performance</li>
-                <li>Use immediate values when possible to reduce memory reads</li>
-            </ul>
+  <div class="api-function">
+    <h3>Best Practices</h3>
+    <ul>
+      <li><strong>Always stop before upload:</strong> Use <code>VPUWriteControlRegister(platform->vx, 0x0F, 0x00)</code> to stop existing programs</li>
+      <li><strong>Program size:</strong> Choose appropriate buffer size - larger programs allow more complex effects</li>
+      <li><strong>Timing coordination:</strong> Use <code>vcp_wscn()</code> and <code>vcp_wpix()</code> to synchronize with video output</li>
+      <li><strong>Register allocation:</strong> All 16 registers (VREG_ZERO through VREG_F) are general purpose except VREG_ZERO which always reads as 0</li>
+      <li><strong>Infinite loops:</strong> Most VCP programs run in infinite loops synchronized to vsync</li>
+    </ul>
+    
+    <h3>Common Patterns</h3>
+    <ul>
+      <li><strong>Frame sync:</strong> Wait for scanline 0 to detect new frame</li>
+      <li><strong>Scanline effects:</strong> Wait for specific scanlines and modify palette</li>
+      <li><strong>Conditional execution:</strong> Use <code>vcp_cmp()</code> and <code>vcp_branchim()</code> for state-based effects</li>
+      <li><strong>Incremental changes:</strong> Use <code>vcp_radd()</code> / <code>vcp_rsub()</code> for smooth transitions</li>
+    </ul>
+    
+    <h3>Performance Considerations</h3>
+    <ul>
+      <li>VCP instructions execute in parallel with CPU, minimizing performance impact</li>
+      <li>Palette writes can be synchronized to end of line to prevent tearing</li>
+      <li>Keep programs as small as possible for optimal performance</li>
+      <li>Use immediate values when possible to reduce memory reads</li>
+    </ul>
+  </div>
 
   <h2>Related Documentation</h2>
-            <ul>
-                <li><a href="platform.html">Platform API</a> - Core platform functions</li>
-                <li><a href="video.html">VPU API</a> - Video processing unit functions</li>
+  <ul>
+    <li><a href="platform.html">Platform API</a> - Core platform functions</li>
+    <li><a href="video.html">VPU API</a> - Video processing unit functions</li>
     <li><a href="sdk.html">SDK Overview</a> - Main SDK documentation</li>
   </ul>
 </main>

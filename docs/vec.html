@@ -392,9 +392,11 @@ void render_scene(struct SPPlatform* platform) {
         vec3_transform_mat3(normal, normal_mat)
     );
 }</code></pre>
+  </div>
 
-            <h3>Quaternion Animation</h3>
-            <pre><code>#include "vec.h"
+  <div class="api-function">
+    <h3>Quaternion Animation</h3>
+    <pre><code>#include "vec.h"
 
 void update_rotation(float t) {
     // Start and end orientations
@@ -409,9 +411,11 @@ void update_rotation(float t) {
     vec3_t point = vec3_forward();
     vec3_t rotated = quat_rotate_vec3(current, point);
 }</code></pre>
+  </div>
 
-            <h3>Vector Math Example</h3>
-            <pre><code>#include "vec.h"
+  <div class="api-function">
+    <h3>Vector Math Example</h3>
+    <pre><code>#include "vec.h"
 
 void calculate_lighting(vec3_t light_pos, vec3_t surface_pos, 
                         vec3_t surface_normal) {
@@ -436,29 +440,33 @@ void calculate_lighting(vec3_t light_pos, vec3_t surface_pos,
     
     float final_intensity = diffuse * attenuation;
 }</code></pre>
+  </div>
 
   <h2>Compilation Notes</h2>
   
-  <h3>Enabling NEON Optimization</h3>
-            <p>To enable NEON SIMD optimizations, compile with:</p>
-            <pre><code>arm-none-linux-gnueabihf-gcc -mfpu=neon -mfloat-abi=hard -O3 your_code.c</code></pre>
-            
-            <h3>Portability</h3>
-            <p>The library automatically detects NEON support at compile time. If NEON is not available, it falls back to standard C implementations, ensuring your code works across different platforms.</p>
-            
-            <h3>Performance Tips</h3>
-            <ul>
-                <li><strong>Batch operations:</strong> Process multiple vectors/matrices in loops for better SIMD utilization</li>
-                <li><strong>Alignment:</strong> Data is automatically aligned for optimal NEON performance</li>
-                <li><strong>Fast math:</strong> Use fast approximation functions when high precision isn't critical</li>
-                <li><strong>Minimize conversions:</strong> Keep data in NEON-friendly formats (vec3_t, vec4_t) throughout pipelines</li>
-            </ul>
+  <div class="api-function">
+    <h3>Enabling NEON Optimization</h3>
+    <p>To enable NEON SIMD optimizations, compile with:</p>
+    <pre><code>arm-none-linux-gnueabihf-gcc -mfpu=neon -mfloat-abi=hard -O3 your_code.c</code></pre>
+    
+    <h3>Portability</h3>
+    <p>The library automatically detects NEON support at compile time. If NEON is not available, it falls back to standard C implementations, ensuring your code works across different platforms.</p>
+    
+    <h3>Performance Tips</h3>
+    <ul>
+      <li><strong>Batch operations:</strong> Process multiple vectors/matrices in loops for better SIMD utilization</li>
+      <li><strong>Alignment:</strong> Data is automatically aligned for optimal NEON performance</li>
+      <li><strong>Fast math:</strong> Use fast approximation functions when high precision isn't critical</li>
+      <li><strong>Minimize conversions:</strong> Keep data in NEON-friendly formats (vec3_t, vec4_t) throughout pipelines</li>
+    </ul>
+  </div>
 
   <h2>Matrix Convention</h2>
   
-  <h3>Column-Major Order</h3>
-            <p>All matrices use column-major ordering, compatible with OpenGL, Vulkan, and Metal:</p>
-            <pre><code>mat4_t m;
+  <div class="api-function">
+    <h3>Column-Major Order</h3>
+    <p>All matrices use column-major ordering, compatible with OpenGL, Vulkan, and Metal:</p>
+    <pre><code>mat4_t m;
 // m.m[0..3]   = column 0
 // m.m[4..7]   = column 1
 // m.m[8..11]  = column 2
@@ -467,19 +475,20 @@ void calculate_lighting(vec3_t light_pos, vec3_t surface_pos,
 // Element at column c, row r:
 float element = m.m[c * 4 + r];</code></pre>
 
-            <h3>Coordinate System</h3>
-            <p>The library uses a right-handed coordinate system by default:</p>
-            <ul>
-                <li>+X = right</li>
-                <li>+Y = up</li>
-                <li>+Z = towards camera (away from screen)</li>
-            </ul>
+    <h3>Coordinate System</h3>
+    <p>The library uses a right-handed coordinate system by default:</p>
+    <ul>
+      <li>+X = right</li>
+      <li>+Y = up</li>
+      <li>+Z = towards camera (away from screen)</li>
+    </ul>
+  </div>
 
   <h2>Related Documentation</h2>
-            <ul>
-                <li><a href="platform.html">Platform API</a> - Core platform functions</li>
-                <li><a href="video.html">VPU API</a> - Video processing unit</li>
-                <li><a href="vcp.html">VCP API</a> - Vector coprocessor</li>
+  <ul>
+    <li><a href="platform.html">Platform API</a> - Core platform functions</li>
+    <li><a href="video.html">VPU API</a> - Video processing unit</li>
+    <li><a href="vcp.html">VCP API</a> - Vector coprocessor</li>
     <li><a href="sdk.html">SDK Overview</a> - Main SDK documentation</li>
   </ul>
 </main>
