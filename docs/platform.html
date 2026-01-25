@@ -40,6 +40,112 @@
     <code class="function-signature">void SPFreeBuffer(struct SPPlatform* _platform, struct SPSizeAlloc *_sizealloc);</code>
     <p>Hands back the previously allocated buffer.</p>
   </div>
+
+  <h3>Input Device Discovery</h3>
+
+  <div class="api-function">
+    <code class="function-signature">int SPFindKeyboardDevice();</code>
+    <p>Searches for a connected keyboard device by scanning <code>/dev/input/event*</code> devices.</p>
+    <p><strong>Returns:</strong> File descriptor for the keyboard device, or -1 if not found.</p>
+    <p><strong>Usage:</strong> The returned file descriptor can be used with <code>poll()</code> and <code>read()</code> to receive keyboard input events in <code>struct input_event</code> format (from <code>linux/input.h</code>).</p>
+    <p><strong>Example:</strong></p>
+    <pre><code>#include &lt;poll.h&gt;
+#include &lt;linux/input.h&gt;
+#include "platform.h"
+
+struct pollfd fds[1];
+fds[0].fd = SPFindKeyboardDevice();
+fds[0].events = POLLIN;
+
+if (fds[0].fd < 0) {
+    printf("No keyboard found\n");
+} else {
+    // Poll for events
+    int ret = poll(fds, 1, 10);
+    if (ret > 0) {
+        struct input_event ev;
+        read(fds[0].fd, &ev, sizeof(ev));
+        if (ev.type == EV_KEY) {
+            printf("Key: %d, State: %d\n", ev.code, ev.value);
+        }
+    }
+}</code></pre>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">int SPFindMouseDevice();</code>
+    <p>Searches for a connected mouse or touchpad device by scanning <code>/dev/input/event*</code> devices.</p>
+    <p><strong>Returns:</strong> File descriptor for the mouse device, or -1 if not found.</p>
+    <p><strong>Usage:</strong> The returned file descriptor can be used with <code>poll()</code> and <code>read()</code> to receive mouse input events. Mouse events include relative movement (EV_REL) with REL_X/REL_Y axes and button presses (EV_KEY) with BTN_LEFT/BTN_RIGHT/BTN_MIDDLE.</p>
+    <p><strong>Example:</strong></p>
+    <pre><code>#include &lt;poll.h&gt;
+#include &lt;linux/input.h&gt;
+#include "platform.h"
+
+struct pollfd fds[1];
+fds[0].fd = SPFindMouseDevice();
+fds[0].events = POLLIN;
+
+if (fds[0].fd >= 0) {
+    int ret = poll(fds, 1, 10);
+    if (ret > 0) {
+        struct input_event ev;
+        read(fds[0].fd, &ev, sizeof(ev));
+        
+        if (ev.type == EV_REL) {
+            if (ev.code == REL_X)
+                printf("Mouse X: %d\n", ev.value);
+            else if (ev.code == REL_Y)
+                printf("Mouse Y: %d\n", ev.value);
+        } else if (ev.type == EV_KEY) {
+            printf("Button: %d, State: %d\n", ev.code, ev.value);
+        }
+    }
+}</code></pre>
+  </div>
+
+  <div class="api-function">
+    <code class="function-signature">int SPFindGamepadDevice();</code>
+    <p>Searches for a connected gamepad or joystick device by scanning <code>/dev/input/event*</code> devices.</p>
+    <p><strong>Returns:</strong> File descriptor for the gamepad device, or -1 if not found.</p>
+    <p><strong>Usage:</strong> The returned file descriptor can be used with <code>poll()</code> and <code>read()</code> to receive gamepad input events. Gamepad events include absolute axis values (EV_ABS) for joysticks and triggers, and button presses (EV_KEY) for face buttons, triggers, and D-pad.</p>
+    <p><strong>Example:</strong></p>
+    <pre><code>#include &lt;poll.h&gt;
+#include &lt;linux/input.h&gt;
+#include "platform.h"
+
+struct pollfd fds[1];
+fds[0].fd = SPFindGamepadDevice();
+fds[0].events = POLLIN;
+
+if (fds[0].fd >= 0) {
+    printf("Gamepad found!\n");
+    
+    int ret = poll(fds, 1, 10);
+    if (ret > 0) {
+        struct input_event ev;
+        read(fds[0].fd, &ev, sizeof(ev));
+        
+        if (ev.type == EV_ABS) {
+            printf("Axis %d: %d\n", ev.code, ev.value);
+        } else if (ev.type == EV_KEY) {
+            printf("Button %d: %s\n", ev.code, 
+                   ev.value ? "pressed" : "released");
+        }
+    }
+}</code></pre>
+  </div>
+
+  <h3>Notes on Input Handling</h3>
+  <ul>
+    <li>All input device functions scan <code>/dev/input/event0</code> through <code>/dev/input/event31</code></li>
+    <li>Devices are identified by their capabilities using <code>EVIOCGBIT</code> ioctl queries</li>
+    <li>File descriptors should be opened in non-blocking mode (<code>O_NONBLOCK</code>) for use with <code>poll()</code></li>
+    <li>Remember to close file descriptors when no longer needed</li>
+    <li>Input events use the standard Linux input subsystem (<code>linux/input.h</code>)</li>
+    <li>Multiple applications can read from the same input device simultaneously</li>
+  </ul>
+
 </main>
 <footer>
   <span>&copy; 2025 Engin Cilasun</span>
