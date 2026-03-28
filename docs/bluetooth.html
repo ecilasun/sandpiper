@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bluetooth - Sandpiper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="title-bar">
+  <h1>Bluetooth - Sandpiper</h1>
+</header>
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &gt; <a href="sdk.html">SDK</a> &gt; Bluetooth
+</nav>
+<main class="content">
+  <h2>Adding a Bluetooth Device to Sandpiper Linux</h2>
+  <p>This guide explains how to connect a Bluetooth device (such as a keyboard, mouse, or speaker) to the Sandpiper Linux environment running on the Smart Zynq SP board.</p>
+
+  <h2>Hardware Requirements</h2>
+  <ul>
+    <li>Sandpiper system running Petalinux with Bluetooth module enabled</li>
+    <li>Compatible Bluetooth adapter (tested with Broadcom BCM20702A0 BT4 adapter)</li>
+    <li>Bluetooth device to connect (keyboard, mouse, speaker, etc.)</li>
+  </ul>
+
+  <h2>Checking Bluetooth Availability</h2>
+  <p>First, verify that Bluetooth is available and the adapter is detected:</p>
+  <pre><code>lsusb
+# Look for a Bluetooth adapter in the output
+
+hciconfig -a
+# Should show your Bluetooth adapter (typically hci0)</code></pre>
+
+  <div class="api-function">
+    <p><strong>Note:</strong> If no Bluetooth adapter is detected, ensure your USB Bluetooth adapter is properly connected, or verify that the Bluetooth kernel modules are loaded with <code>lsmod | grep bt</code>.</p>
+  </div>
+
+  <h2>Enabling Bluetooth</h2>
+  <p>Enable the Bluetooth adapter:</p>
+  <pre><code>sudo hciconfig hci0 up</code></pre>
+
+  <h2>Scanning for Devices</h2>
+  <p>Scan for nearby Bluetooth devices:</p>
+  <pre><code>hcitool scan</code></pre>
+  <p>This will return a list of devices with their MAC addresses and names:</p>
+  <pre><code>Scanning ...
+        00:11:22:33:44:55   MyBluetoothDevice</code></pre>
+
+  <h2>Paring and Connecting</h2>
+  <p>Use <code>bluetoothctl</code> for a more interactive pairing process:</p>
+  <pre><code>bluetoothctl
+# Start the Bluetooth control interface
+
+[bluetooth]# power on
+# Power on the Bluetooth adapter
+
+[bluetooth]# agent on
+# Enable the default agent
+
+[bluetooth]# default-agent
+# Set the default agent
+
+[bluetooth]# scan on
+# Start scanning for devices
+
+# Wait for your device to appear in the scan results, then:
+
+[bluetooth]# pair [MAC_ADDRESS]
+# Example: pair 00:11:22:33:44:55
+
+# You may be prompted to confirm a passkey or enter a PIN (commonly '0000' or '1234')
+
+[bluetooth]# trust [MAC_ADDRESS]
+# Trust the device for automatic reconnection
+
+[bluetooth]# connect [MAC_ADDRESS]
+# Connect to the device
+
+# Exit when done:
+[bluetooth]# quit</code></pre>
+
+  <div class="api-function">
+    <p><strong>Troubleshooting:</strong> If pairing fails, ensure your Bluetooth device is in pairing mode and discoverable. Some devices may require a specific PIN. Check <code>dmesg</code> output for any Bluetooth-related errors.</p>
+  </div>
+
+  <h2>Connecting Audio Devices</h2>
+  <p>For Bluetooth audio devices (headphones, speakers), you may need to install and configure BlueZ and PulseAudio:</p>
+  <pre><code># Install BlueZ and PulseAudio modules if not already installed
+apt-get install bluez pulseaudio-module-bluetooth
+
+# After connecting the device, you may need to set it as the audio sink:
+pactl set-default-sink [sink_name]</code></pre>
+
+  <h2>Connecting Input Devices</h2>
+  <p>Bluetooth keyboards and mice should work automatically once paired and connected, as they use the HID (Human Interface Device) profile. The device will appear as a standard input device in Linux.</p>
+
+  <h2>Automatic Reconnection</h2>
+  <p>Once a device is trusted, it should automatically reconnect when powered on and within range. If automatic reconnection fails, ensure the device is not blocked:</p>
+  <pre><code>bluetoothctl
+[bluetooth]# devices
+# List all paired devices
+
+[bluetooth]# connect [MAC_ADDRESS]
+# Manually connect to a device</code></pre>
+
+  <h2>Testing Your Connection</h2>
+  <p>Verify the connection is working by testing your device:</p>
+  <ul>
+    <li><strong>Keyboard:</strong> Type on the keyboard to verify input</li>
+    <li><strong>Mouse:</strong> Move the cursor and click to verify movement and button presses</li>
+    <li><strong>Audio:</strong> Play a sound to verify audio output</li>
+  </ul>
+
+  <h2>Resources</h2>
+  <ul>
+    <li><a href="https://wiki.archlinux.org/title/Bluetooth">ArchWiki Bluetooth Guide</a> - Comprehensive Bluetooth documentation</li>
+    <li><a href="https://wiki.bluez.org/">BlueZ Documentation</a> - Linux Bluetooth protocol stack</li>
+    <li><a href="https://github.com/ecilasun/sandpiper_petalinux">Sandpiper OS Build Configuration</a> - Includes Bluetooth kernel module configurations</li>
+  </ul>
+</main>
+<footer>
+  <span>&copy; 2025 Engin Cilasun</span>
+  <span>Page 12</span>
+</footer>
+</body>
+</html>
