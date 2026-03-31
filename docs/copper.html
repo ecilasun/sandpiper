@@ -287,12 +287,12 @@ O = opcode at program address (4 bits)</code></pre>
 	<div class="api-function">
 		<code class="function-signature">mv(dest, src)</code>
 		<p>Operation: Copies <code>src</code> to <code>dest</code> (implemented as an add with <code>VREG_ZERO</code>).</p>
-		<p>Lantecy: 4 cycles.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">clr(dest)</code>
 		<p>Operation: Assigns zero to <code>dest</code>.</p>
-		<p>Lantecy: 4 cycles.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h2>Example Usage</h2>
@@ -319,6 +319,23 @@ VCPExecProgram(platform, 0x1); // start
 // ... later: VCPExecProgram(platform, 0x0); // stop
 
 SPShutdownPlatform(platform);</code></pre>
+
+	<h2>Throughput</h2>
+	<h3>Per pixel clock</h3>
+	<pre><code>aclk / pixel clock = 166.667 MHz / 25 MHz = 6.67 aclk cycles per pixel
+At 4 cycles/instruction: ~1.67 instructions per pixel</code></pre>
+
+	<h3>Per frame (full VGA 640x480 timing with blanking = 800x525 = 420,000 pixel clocks)</h3>
+	<pre><code>Frame rate: 25 MHz / 420,000 = ~59.52 Hz
+aclk cycles per frame: 166,666,667 / 59.52 ~= 2,800,112 cycles
+Instructions per frame: ~700,028</code></pre>
+
+	<h3>Per scanline (800 pixel clocks including HBlank)</h3>
+	<pre><code>aclk cycles per line: 800 x 6.667 = 5,333 cycles
+Instructions per line: ~1,333</code></pre>
+
+	<h3>Theoretical peak throughput</h3>
+	<p>At 166.667 MHz with one instruction retired every 4 clocks, the VCP theoretical maximum is approximately <strong>41.67 MIPS</strong>.</p>
 
 </main>
 <footer>
