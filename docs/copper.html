@@ -85,137 +85,214 @@ O = opcode at program address (4 bits)</code></pre>
 #define VREG_F    0x0F</code></pre>
 
 	<h2>VCP Instruction Reference</h2>
+	<h3>Instruction Latencies</h3>
+	<p>Cycle counts marked with <code>+</code> are variable-latency operations that can stall in wait states until their condition or interface handshake completes.</p>
+	<table>
+		<thead>
+			<tr>
+				<th>Opcode</th>
+				<th>Mnemonic</th>
+				<th>Description</th>
+				<th>Cycles</th>
+				<th>Notes</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td>0x0</td><td>NOP</td><td>No operation</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0x1</td><td>LOAD_IMM</td><td>Load 24-bit immediate into rd</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0x2</td><td>PAL_WRITE</td><td>Write palette entry</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0x3</td><td>SCANLINE_WAIT</td><td>Wait for scanline match</td><td>4+</td><td>Spins in EXEC until scanline == rs1; variable/unbounded</td></tr>
+			<tr><td>0x4</td><td>SCANPIXEL_WAIT</td><td>Wait for scan pixel match</td><td>4+</td><td>Spins in EXEC until scanpixel == rs1; variable/unbounded</td></tr>
+			<tr><td>0x5</td><td>MATHOP</td><td>ALU op (ADD/SUB/INC/DEC via imm8)</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0x6</td><td>JMP</td><td>Jump (direct or PC-relative)</td><td>4</td><td>Base pipeline; next fetch from new PC</td></tr>
+			<tr><td>0x7</td><td>CMP</td><td>Compare rs1 vs rs2, set flags</td><td>5</td><td>+1 for FINALIZE_COMPARE state</td></tr>
+			<tr><td>0x8</td><td>BRANCH</td><td>Conditional branch on cmpreg</td><td>4</td><td>Base pipeline (taken or not)</td></tr>
+			<tr><td>0x9</td><td>MEM_WRITE</td><td>Write rs2 to program memory at rs1</td><td>4</td><td>Hijacks PC for the write port</td></tr>
+			<tr><td>0xA</td><td>MEM_READ</td><td>Read program memory at rs1 into rd</td><td>6</td><td>+2 for WAIT_READ -> FINALIZE_READ</td></tr>
+			<tr><td>0xB</td><td>READ_SCANINFO</td><td>Read scanline or scanpixel into rd</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0xC</td><td>LOADPC</td><td>Copy next PC into rd (link register)</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0xD</td><td>LOGICOP</td><td>Logic op (AND/OR/XOR/shifts/etc via imm8)</td><td>4</td><td>Base pipeline</td></tr>
+			<tr><td>0xE</td><td>SYSMEM_WRITE</td><td>AXI write to system memory</td><td>7+</td><td>+3 min for AW handshake -> W handshake -> B response; each wait state stalls until AXI ready/valid</td></tr>
+			<tr><td>0xF</td><td>SYSMEM_READ</td><td>AXI read from system memory</td><td>6+</td><td>+2 min for AR handshake -> R data; each wait state stalls until AXI ready/valid</td></tr>
+		</tbody>
+	</table>
 
 	<h3>Wait instructions</h3>
 	<div class="api-function">
 		<code class="function-signature">wscn(src)</code>
-		<p>Waits for a scanline that matches the contents of register <code>src</code>. Valid range is 0..524. Out-of-range values cause an infinite wait.</p>
+		<p>Operation: Waits for a scanline that matches the contents of register <code>src</code>. Valid range is 0..524. Out-of-range values cause an infinite wait.</p>
+		<p>Latency: 4+ cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">wpix(src)</code>
-		<p>Waits for a pixel (X coordinate) that matches the contents of register <code>src</code>. Valid range is 0..799. Out-of-range values cause an infinite wait.</p>
+		<p>Operation: Waits for a pixel (X coordinate) that matches the contents of register <code>src</code>. Valid range is 0..799. Out-of-range values cause an infinite wait.</p>
+		<p>Latency: 4+ cycles.</p>
 	</div>
 
 	<h3>Color palette access</h3>
 	<div class="api-function">
 		<code class="function-signature">pwrt(addrs, src)</code>
-		<p>Writes the value of register <code>src</code> to palette entry at <code>addrs</code> (0..255, increment by 1).</p>
+		<p>Operation: Writes the value of register <code>src</code> to palette entry at <code>addrs</code> (0..255, increment by 1).</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h3>Arithmetic instructions</h3>
 	<div class="api-function">
 		<code class="function-signature">radd(dest, src1, src2)</code>
-		<p>Adds <code>src2</code> to <code>src1</code> and writes the result to <code>dest</code>. Overflow bits are discarded.</p>
+		<p>Operation: Adds <code>src2</code> to <code>src1</code> and writes the result to <code>dest</code>. Overflow bits are discarded.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rsub(dest, src1, src2)</code>
-		<p>Subtracts <code>src2</code> from <code>src1</code> and writes the result to <code>dest</code>.</p>
+		<p>Operation: Subtracts <code>src2</code> from <code>src1</code> and writes the result to <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rinc(dest, src1)</code>
-		<p>Increments <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+		<p>Operation: Increments <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rdec(dest, src1)</code>
-		<p>Decrements <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+		<p>Operation: Decrements <code>src1</code> by one and writes the result to <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h3>Branch instructions</h3>
 	<div class="api-function">
 		<code class="function-signature">jump(addrs)</code>
-		<p>Unconditional jump to program memory address contained in register <code>addrs</code>. Address must be 4-byte aligned.</p>
+		<p>Operation: Unconditional jump to program memory address contained in register <code>addrs</code>. Address must be 4-byte aligned.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">jumpim(offset)</code>
-		<p>Unconditional jump to PC-relative target (current PC plus <code>offset</code>). Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+		<p>Operation: Unconditional jump to PC-relative target (current PC plus <code>offset</code>). Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">branch(addrs)</code>
-		<p>Conditional branch to address in <code>addrs</code> if <code>cmpreg</code> is nonzero. Address must be 4-byte aligned.</p>
+		<p>Operation: Conditional branch to address in <code>addrs</code> if <code>cmpreg</code> is nonzero. Address must be 4-byte aligned.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">branchim(offset)</code>
-		<p>Conditional PC-relative branch if <code>cmpreg</code> is nonzero. Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+		<p>Operation: Conditional PC-relative branch if <code>cmpreg</code> is nonzero. Offset is a 2’s complement (signed) 13-bit value; highest 3 bits are ignored. Target must be 4-byte aligned.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h3>Program memory access</h3>
 	<div class="api-function">
 		<code class="function-signature">store(addrs, src)</code>
-		<p>Stores register <code>src</code> to program memory at the address held in <code>addrs</code>. Address must be 4-byte aligned.</p>
+		<p>Operation: Stores register <code>src</code> to program memory at the address held in <code>addrs</code>. Address must be 4-byte aligned.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">load(addrs, dest)</code>
-		<p>Loads from program memory at the address held in <code>addrs</code> into <code>dest</code>. Address must be 4-byte aligned.</p>
+		<p>Operation: Loads from program memory at the address held in <code>addrs</code> into <code>dest</code>. Address must be 4-byte aligned.</p>
+		<p>Latency: 6 cycles.</p>
+	</div>
+
+	<h3>System memory access</h3>
+	<div class="api-function">
+		<code class="function-signature">sysmem_write(addrs, src)</code>
+		<p>Operation: Performs an AXI write of register <code>src</code> to system memory at address in <code>addrs</code>.</p>
+		<p>Latency: 7+ cycles.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">sysmem_read(addrs, dest)</code>
+		<p>Operation: Performs an AXI read from system memory at address in <code>addrs</code> and writes the returned value to <code>dest</code>.</p>
+		<p>Latency: 6+ cycles.</p>
 	</div>
 
 	<h3>Internal register access</h3>
 	<div class="api-function">
 		<code class="function-signature">scanline_read(dest)</code>
-		<p>Reads the current scanline into <code>dest</code>. Values range from 0 to 524 (can include off-screen).</p>
+		<p>Operation: Reads the current scanline into <code>dest</code>. Values range from 0 to 524 (can include off-screen).</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">scanpixel_read(dest)</code>
-		<p>Reads the current pixel (X coordinate) into <code>dest</code>. Values range from 0 to 799 (can include off-screen).</p>
+		<p>Operation: Reads the current pixel (X coordinate) into <code>dest</code>. Values range from 0 to 799 (can include off-screen).</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h3>Logic instructions</h3>
 	<div class="api-function">
 		<code class="function-signature">cmp(cmpflags, src1, src2)</code>
-		<p>Compares <code>src1</code> and <code>src2</code> using <code>cmpflags</code>, ORs compare results, and writes the 1-bit result into <code>cmpreg</code> for use by branch instructions.</p>
+		<p>Operation: Compares <code>src1</code> and <code>src2</code> using <code>cmpflags</code>, ORs compare results, and writes the 1-bit result into <code>cmpreg</code> for use by branch instructions.</p>
+		<p>Latency: 5 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rand(dest, src1, src2)</code>
-		<p>Bitwise AND of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Operation: Bitwise AND of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">ror(dest, src1, src2)</code>
-		<p>Bitwise OR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Operation: Bitwise OR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rxor(dest, src1, src2)</code>
-		<p>Bitwise XOR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Operation: Bitwise XOR of <code>src1</code> and <code>src2</code> into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rasr(dest, src1, src2)</code>
-		<p>Arithmetic shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Operation: Arithmetic shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rshr(dest, src1, src2)</code>
-		<p>Logical shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Operation: Logical shift-right of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rshl(dest, src1, src2)</code>
-		<p>Shift-left of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Operation: Shift-left of <code>src1</code> by <code>src2</code> (lowest 5 bits used) into <code>dest</code>.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rneg(dest, src)</code>
-		<p>Bitwise negation of <code>src</code> into <code>dest</code> (equivalent to <code>src ^ 0xFFFFFF</code>).</p>
+		<p>Operation: Bitwise negation of <code>src</code> into <code>dest</code> (equivalent to <code>src ^ 0xFFFFFF</code>).</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">rcmp(dest)</code>
-		<p>Reads <code>cmpreg</code> into <code>dest</code> (zero-extended).</p>
+		<p>Operation: Reads <code>cmpreg</code> into <code>dest</code> (zero-extended).</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">lctl(dest)</code>
-		<p>Loads the VPU control register into the lower 8 bits of <code>dest</code>. This can be used to have CPU-written VPU state influence VCP program flow.</p>
+		<p>Operation: Loads the VPU control register into the lower 8 bits of <code>dest</code>. This can be used to have CPU-written VPU state influence VCP program flow.</p>
+		<p>Latency: 4 cycles.</p>
+	</div>
+	<div class="api-function">
+		<code class="function-signature">loadpc(dest)</code>
+		<p>Operation: Copies the next program counter (PC) value into <code>dest</code>, commonly used as a link-register style return target.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 
 	<h3>Other instructions</h3>
 	<div class="api-function">
 		<code class="function-signature">ldim(dest, immed)</code>
-		<p>Loads a 24-bit immediate value into register <code>dest</code>. (Alias: <code>mvim(dest, imm)</code>.)</p>
+		<p>Operation: Loads a 24-bit immediate value into register <code>dest</code>. (Alias: <code>mvim(dest, imm)</code>.)</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">noop()</code>
-		<p>No operation.</p>
+		<p>Operation: No operation.</p>
+		<p>Latency: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">mv(dest, src)</code>
-		<p>Copies <code>src</code> to <code>dest</code> (implemented as an add with <code>VREG_ZERO</code>).</p>
+		<p>Operation: Copies <code>src</code> to <code>dest</code> (implemented as an add with <code>VREG_ZERO</code>).</p>
+		<p>Lantecy: 4 cycles.</p>
 	</div>
 	<div class="api-function">
 		<code class="function-signature">clr(dest)</code>
-		<p>Assigns zero to <code>dest</code>.</p>
+		<p>Operation: Assigns zero to <code>dest</code>.</p>
+		<p>Lantecy: 4 cycles.</p>
 	</div>
 
 	<h2>Example Usage</h2>
@@ -243,27 +320,6 @@ VCPExecProgram(platform, 0x1); // start
 
 SPShutdownPlatform(platform);</code></pre>
 
-	<h2>Instruction latencies</h2>
-	<pre><code>
-Instruction latencies:
-0x0 NOP: 4
-0x1 LOAD_IMM: 4
-0x2 PAL_WRITE: 4
-0x3 SCANLINE_WAIT:
-If condition is already true when it reaches EXEC: 4
-If not true: 4 + k, where each additional poll costs 1 core clock (it stays in EXEC and keeps PC the same until the match)
-0x4 SCANPIXEL_WAIT: same as SCANLINE_WAIT (4 if hit immediately, else 4 + k with 1 cycle per poll)
-0x5 MATHOP: 4
-0x6 JMP: 4
-0x7 CMP: 5 (extra FINALIZE_COMPARE state)
-0x8 BRANCH (depends on prior cmpreg): 4
-0x9 MEM_WRITE: 4
-0xA MEM_READ: 6 (WAIT_READ + FINALIZE_READ after EXEC)
-0xB READ_SCANINFO: 4
-0xD LOGICOP: 4
-0xC/0xE/0xF UNUSED*: 4 (they do nothing but still consume the normal FSM path)
-
-</code></pre>
 </main>
 <footer>
 	<span>&copy; 2025 Engin Cilasun</span>
