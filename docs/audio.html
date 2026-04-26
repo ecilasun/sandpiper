@@ -17,7 +17,7 @@
 <main class="content">
   <h2>APU Overview</h2>
   <p>The Audio Processing Unit (APU) handles audio playback on the Sandpiper platform. It supports stereo 16-bit PCM audio at various sample rates (44.1 KHz, 22.05 KHz, 11.025 KHz) and uses DMA to stream audio data from shared memory to the audio hardware.</p>
-  <p>The APU works with a double-buffered system where the hardware toggles between two buffer halves. Applications can use <code>APUFrame()</code> to determine which buffer is currently being played and <code>APUWaitSync()</code> to synchronize audio updates with buffer swaps.</p>
+  <p>The APU uses an internal double-buffered system. A typical stream loop generates the next chunk of PCM data into a DMA buffer, queues it with <code>APUStartDMA()</code>, then blocks on <code>APUWaitSync()</code> until the hardware is ready for the next chunk.</p>
 
   <h2>Data Structures</h2>
 
@@ -78,7 +78,7 @@
 
   <div class="api-function">
     <code class="function-signature">void APUStartDMA(struct EAudioContext* _context, uint32_t _audioBufferAddress16byteAligned);</code>
-    <p>Queues the next set of audio samples to be transferred to the APU's internal buffer. The buffer address must be 16-byte aligned and should be a physical address obtained from <code>SPAllocateBuffer()</code>.</p>
+    <p>Queues the next set of audio samples to be transferred to the APU's internal buffer. The buffer address must be 16-byte aligned and should be a physical address obtained from <code>SPAllocateBuffer()</code>. In a streaming loop, call this after writing fresh PCM data to the DMA buffer.</p>
   </div>
 
   <h3>Synchronization</h3>
@@ -90,7 +90,7 @@
 
   <div class="api-function">
     <code class="function-signature">uint32_t APUFrame(struct EAudioContext* _context);</code>
-    <p>Returns the current frame status (0 or 1). This indicates which half of the double buffer is currently being played. Applications should fill the inactive buffer half while the other is being played.</p>
+    <p>Returns the current frame status (0 or 1). This can be used as a status/diagnostic signal to observe the active playback phase.</p>
   </div>
 
   <div class="api-function">
@@ -100,7 +100,7 @@
 
   <div class="api-function">
     <code class="function-signature">void APUWaitSync(struct EAudioContext *_context);</code>
-    <p>Blocks until the APU switches to the next buffer. This is useful for synchronizing audio data updates with buffer swaps.</p>
+    <p>Blocks until the APU advances to the next buffer phase. In a streaming loop, call this after <code>APUStartDMA()</code> so the producer stays synchronized with hardware playback.</p>
   </div>
 
   <h2>Example Usage</h2>
@@ -111,24 +111,20 @@ APUInitAudio(&amp;audioCtx, platform);
 
 // Allocate audio buffer (must be 16-byte aligned)
 struct SPSizeAlloc audioBuffer;
-audioBuffer.size = 4096;  // Double buffer: 2x 2048 bytes
+audioBuffer.size = 4096;  // One 4 KB DMA chunk (matches ABS_4096Bytes)
 SPAllocateBuffer(platform, &amp;audioBuffer);
 
 // Configure audio
-APUSetBufferSize(&amp;audioCtx, ABS_2048Bytes);
+APUSetBufferSize(&amp;audioCtx, ABS_4096Bytes);
 APUSetSampleRate(&amp;audioCtx, ASR_44_100_Hz);
 
-// Start playback
-APUStartDMA(&amp;audioCtx, (uint32_t)audioBuffer.dmaAddress);
-
-// Audio loop
+// Audio loop: generate chunk, queue it, then wait until hardware is ready
 while (playing) {
-    uint32_t frame = APUFrame(&amp;audioCtx);
-    // Fill the inactive buffer half
-    int16_t* samples = (int16_t*)(audioBuffer.cpuAddress + (frame ? 0 : 2048));
+  int16_t* samples = (int16_t*)audioBuffer.cpuAddress;
     // ... fill samples ...
-    
-    APUWaitSync(&amp;audioCtx);  // Wait for buffer swap
+
+  APUStartDMA(&amp;audioCtx, (uint32_t)audioBuffer.dmaAddress);
+  APUWaitSync(&amp;audioCtx);
 }
 
 // Cleanup
